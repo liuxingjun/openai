@@ -7,8 +7,8 @@ const openai = new OpenAIApi(configuration);
 const userId = "a0aef703-d59f-4624-af9f-f2717685b5ba"
 // 
 let messagesList = [
-  // { role: 'system', content: "你是一个node工程师" },
-  // { role: 'user', content: '请问if (delta?.role) 中的?. 代表什么意思' },
+  { role: 'system', content: "你是一个node工程师" },
+  { role: 'user', content: '请问if (delta?.role) 中的?. 代表什么意思' },
 ]
 await chatCompletion()
 process.exit()
@@ -29,6 +29,7 @@ function getQuestions(role) {
   }]
 }
 async function chatCompletion() {
+  messagesList = []
   const answer = await inquirer.prompt(getQuestions("system"))
   messagesList.push({ role: 'system', content: answer.message })
   // const answer = await input(questions);
