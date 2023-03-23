@@ -1,14 +1,14 @@
 <template>
-  <div class="chat-container">
+  <div class="chat-container" :style="{ height: chatHeight + 'px', width: chatWidth + 'px' }">
     <div class="chat-header">OpenAI Chat</div>
     <div class="chat-messages" ref="messages">
       <div v-for="message in messages" :key="message.id"
-        :class="{ 'message-sent': message.sentBy === 'user', 'message-received': message.sentBy === 'bot' }">
-        <div class="message-text">{{ message.text }}</div>
+        :class="{ 'message-sent': message.role === 'user', 'message-received': message.role != 'user' }">
+        <div class="message-text">{{ message.content }}</div>
         <div class="message-time">{{ message.time }}</div>
       </div>
     </div>
-    <div class="chat-input">
+    <div class="chat-input" ref="input">
       <input type="text" placeholder="Type your message..." v-model="newMessage" @keyup.enter="sendMessage">
       <button @click="sendMessage">Send</button>
     </div>
@@ -20,9 +20,10 @@ export default {
   data() {
     return {
       messages: [
-        { id: 1, text: 'Hello!', sentBy: 'bot', time: '9:00 AM' },
-        { id: 2, text: 'Hi there!', sentBy: 'user', time: '9:01 AM' },
-        { id: 3, text: 'How can I help you?', sentBy: 'bot', time: '9:02 AM' },
+        { id: 0, role: 'system', content: "你是chatGPT", time: '9:00 AM' },
+        { id: 1, role: 'user', content: "你是谁", time: '9:00 AM' },
+        { id: 2, role: 'assistant', content: "我是openai创造的chatGPT", time: '9:00 AM' },
+        
       ],
       newMessage: '',
     };
@@ -31,8 +32,8 @@ export default {
     sendMessage() {
       const newMsg = {
         id: this.messages.length + 1,
-        text: this.newMessage,
-        sentBy: 'user',
+        content: this.newMessage,
+        role: 'user',
         time: new Date().toLocaleTimeString(),
       };
       this.messages.push(newMsg);
@@ -43,6 +44,22 @@ export default {
     },
     scrollToBottom() {
       this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
+    },
+    calculateChatHeight() {
+      this.chatHeight = window.innerHeight - this.$refs.messages.offsetTop - this.$refs.input.offsetHeight;
+      this.chatWidth= this.$el.offsetWidth;
+    },
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.calculateChatHeight();
+    });
+  },
+  watch: {
+    messages() {
+      this.$nextTick(() => {
+        this.calculateChatHeight();
+      });
     },
   },
 };
@@ -88,12 +105,12 @@ export default {
 
 .message-sent {
   justify-self: end;
-  background-color: #f5f5f5;
+  /* background-color: #f5f5f5; */
 }
 
 .message-received {
   justify-self: start;
-  background-color: #fff;
+  /* background-color: #fff; */
 }
 
 .message-text {
