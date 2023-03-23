@@ -9,35 +9,74 @@
       </div>
     </div>
     <div class="chat-input" ref="input">
-      <input type="text" placeholder="Type your message..." v-model="newMessage" @keyup.enter="sendMessage">
-      <button @click="sendMessage">Send</button>
+      <input type="text" :placeholder="input.placeholder" v-model="newMessage" :disabled="input.disabled"
+        @keyup.enter="sendMessage">
+      <button type="button" :disabled="input.disabled" @click="sendMessage">Send</button>
     </div>
   </div>
 </template>
 
 <script>
+import { Configuration, OpenAIApi } from 'openai';
 export default {
   data() {
     return {
       messages: [
-        { id: 0, role: 'system', content: "你是chatGPT", time: '9:00 AM' },
-        { id: 1, role: 'user', content: "你是谁", time: '9:00 AM' },
-        { id: 2, role: 'assistant', content: "我是openai创造的chatGPT", time: '9:00 AM' },
-        
+        // { id: 0, role: 'system', content: "你是chatGPT", time: '9:00 AM' },
+        // { id: 1, role: 'user', content: "你是谁", time: '9:00 AM' },
+        // { id: 2, role: 'assistant', content: "我是openai创造的chatGPT", time: '9:00 AM' },
       ],
       newMessage: '',
+      input: {
+        placeholder: "请输入消息",
+        disabled: false,
+        button: "发送",
+      },
+      openai_api_key: ""
     };
   },
+  props: {
+    // openai_api_key: { default: '' }
+  },
   methods: {
-    sendMessage() {
+    sending() {
+      this.input.disabled = true;
+      this.input.button = "发送中...";
+    },
+    sendEnd() {
+      this.input.disabled = false;
+      this.input.button = "发送";
+    },
+    notKey() {
+      this.input.disabled = true;
+      this.input.placeholder = "未设置openai_api_key";
+    },
+    async sendMessage() {
+      this.sending()
       const newMsg = {
         id: this.messages.length + 1,
         content: this.newMessage,
         role: 'user',
-        time: new Date().toLocaleTimeString(),
+        time: new Date().toLocaleString(),
       };
       this.messages.push(newMsg);
       this.newMessage = '';
+
+      let completionRequest = {
+        model: 'gpt-3.5-turbo',
+        user: this.userId,
+        messages: this.messages
+      }
+      let axiosRequestConfig = { timeout: 0 }
+      const res = await this.openai.createChatCompletion(completionRequest, axiosRequestConfig)
+      messagesList.push({
+        id: this.messages.length + 1,
+        role: res.data.choices[0].message.role,
+        content: res.data.choices[0].message.content,
+        time: new Date().toLocaleString(),
+      })
+      // console.log(res.data.choices[0].message.role, ":", res.data.choices[0].message.content);
+      this.send()
       this.$nextTick(() => {
         this.scrollToBottom();
       });
@@ -47,10 +86,28 @@ export default {
     },
     calculateChatHeight() {
       this.chatHeight = window.innerHeight - this.$refs.messages.offsetTop - this.$refs.input.offsetHeight;
-      this.chatWidth= this.$el.offsetWidth;
+      this.chatWidth = this.$el.offsetWidth;
     },
+    initOpenAi() {
+      if (this.openai_api_key == null || this.openai_api_key == "") {
+        console.error("未设置openai_api_key")
+        this.notKey()
+        return
+      }
+      const configuration = new Configuration({
+        apiKey: this.openai_api_key,
+      });
+      this.openai = new OpenAIApi(configuration);
+    }
   },
   mounted() {
+    const urlParams = new URLSearchParams(window.location.search)
+    this.openai_api_key = urlParams.get('openai_api_key')
+
+    this.initOpenAi()
+
+    const userId = "a0aef703-d59f-4624-af9f-f2717685b5ba"
+
     this.$nextTick(() => {
       this.calculateChatHeight();
     });
@@ -148,7 +205,13 @@ export default {
   transition: background-color 0.3s ease-in-out;
 }
 
-.chat-input button:hover {
+.chat-input button:hover:enabled {
   background-color: #2c3e50;
+}
+
+.chat-input button:disabled {
+  background-color: #ccc;
+  color: #888;
+  cursor: not-allowed;
 }
 </style>
